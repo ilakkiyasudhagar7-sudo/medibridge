@@ -1,185 +1,194 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import React, { useState } from "react";
 
-type StatusEvent = {
-  label: string;
+type Status = "open" | "allocated" | "dispatched" | "received";
+
+interface TimelineItem {
+  status: string;
+  at: string;
   by: string;
-  time: string;
-};
+}
 
-type RequestDetail = {
+interface RequestDetail {
   id: number;
-  priority: "high" | "medium" | "low";
-  unitType: string;
+  priority: string;
+  department: string;
   facilityName: string;
   city: string;
+  currentStatus: Status;
   routeFrom: string;
   routeTo: string;
-  status: "allocated" | "open" | "dispatched" | "received";
-  timeline: StatusEvent[];
+  routeNote: string;
+  timeline: TimelineItem[];
   notes: string[];
-};
+}
 
-const MOCK_REQUEST: RequestDetail = {
+const mockData: RequestDetail = {
   id: 501,
-  priority: "high",
-  unitType: "ICU",
+  priority: "High priority",
+  department: "ICU",
   facilityName: "City Care Hospital",
   city: "Salem",
+  currentStatus: "allocated",
   routeFrom: "Donor address / blood bank",
   routeTo: "Recipient facility",
-  status: "allocated",
+  routeNote: "Map integration can later show live route and distance.",
   timeline: [
-    {
-      label: "Open",
-      by: "facility",
-      time: "8/1/2026, 10:00:00 am",
-    },
-    {
-      label: "Allocated",
-      by: "ngo",
-      time: "9/1/2026, 9:30:00 am",
-    },
-    {
-      label: "Dispatched",
-      by: "ngo",
-      time: "9/1/2026, 2:15:00 pm",
-    },
+    { status: "Open",      at: "8/1/2026, 10:00:00 am", by: "facility" },
+    { status: "Allocated", at: "9/1/2026, 9:30:00 am",  by: "ngo" },
+    { status: "Dispatched",at: "9/1/2026, 2:15:00 pm",  by: "ngo" },
   ],
   notes: ["Allocated to Request #501 by NGO user 10"],
 };
 
-export default function RequestDetailPage() {
-  const params = useParams<{ id: string }>();
-  const id = params.id;
+const statusColor: Record<Status, string> = {
+  open: "bg-gray-200 text-gray-700",
+  allocated: "bg-green-100 text-green-700",
+  dispatched: "bg-blue-100 text-blue-700",
+  received: "bg-purple-100 text-purple-700",
+};
 
-  // later you can replace MOCK_REQUEST with data loaded by id
-  const request = MOCK_REQUEST;
+export default function RequestDetailPage() {
+  const [detail] = useState<RequestDetail>(mockData);
+  const [confirmStatus, setConfirmStatus] = useState<Status>("dispatched");
+  const [confirmNote, setConfirmNote] = useState("");
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-10">
-      <div className="max-w-5xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gray-50 text-gray-900 flex">
+      <div className="w-6" />
+      <main className="flex-1 max-w-6xl mx-auto py-10">
         {/* Header */}
-        <header className="flex items-start justify-between">
+        <div className="flex justify-between items-start mb-6">
           <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase">
-              Request detail
+            <p className="text-xs font-semibold tracking-wide text-gray-500">
+              REQUEST DETAIL
             </p>
-            <h1 className="text-3xl font-semibold text-slate-900">
-              Request #{request.id}
+            <h1 className="text-3xl font-semibold mt-1">
+              Request #{detail.id}
             </h1>
-            <p className="text-sm text-slate-600">
-              High priority, {request.unitType}
+            <p className="text-sm text-gray-500 mt-1">
+              {detail.priority}, {detail.department}
             </p>
           </div>
-          <div className="flex flex-col items-end gap-1">
-            <p className="text-xs text-slate-500">Current status</p>
-            <span className="inline-flex items-center rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-              Allocated
+          <div className="flex flex-col items-end">
+            <p className="text-xs text-gray-500 mb-1">Current status</p>
+            <span
+              className={
+                "px-3 py-1 rounded-full text-xs font-medium capitalize " +
+                statusColor[detail.currentStatus]
+              }
+            >
+              {detail.currentStatus}
             </span>
           </div>
-        </header>
+        </div>
 
         {/* Top cards */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="rounded-2xl border bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-slate-800 mb-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h2 className="text-sm font-semibold text-gray-700 mb-3">
               Key info
             </h2>
-            <dl className="space-y-1 text-sm text-slate-700">
-              <div>
-                <dt className="font-medium">Facility</dt>
-                <dd>
-                  {request.facilityName}
-                </dd>
-              </div>
-              <div>
-                <dt className="font-medium">City</dt>
-                <dd>{request.city}</dd>
-              </div>
-            </dl>
-          </div>
-
-          <div className="rounded-2xl border bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-slate-800 mb-3">
-              Route overview
-            </h2>
-            <dl className="space-y-1 text-sm text-slate-700">
-              <div>
-                <dt className="font-medium">From</dt>
-                <dd>{request.routeFrom}</dd>
-              </div>
-              <div>
-                <dt className="font-medium">To</dt>
-                <dd>{request.routeTo}</dd>
-              </div>
-            </dl>
-            <p className="mt-3 text-xs text-slate-500">
-              Map integration can later show live route and distance.
+            <p className="text-sm text-gray-600">
+              <span className="font-medium">Facility:</span> {detail.facilityName}
+            </p>
+            <p className="text-sm text-gray-600 mt-1">
+              <span className="font-medium">City:</span> {detail.city}
             </p>
           </div>
-        </section>
+
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <h2 className="text-sm font-semibold text-gray-700 mb-3">
+              Route overview
+            </h2>
+            <p className="text-sm text-gray-600">
+              <span className="font-medium">From:</span> {detail.routeFrom}
+            </p>
+            <p className="text-sm text-gray-600 mt-1">
+              <span className="font-medium">To:</span> {detail.routeTo}
+            </p>
+            <p className="text-xs text-gray-400 mt-3">
+              {detail.routeNote}
+            </p>
+          </div>
+        </div>
 
         {/* Status timeline */}
-        <section className="rounded-2xl border bg-white p-5 shadow-sm">
-          <h2 className="text-sm font-semibold text-slate-800 mb-3">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3">
             Status timeline
           </h2>
-          <ul className="space-y-2 text-sm text-slate-700">
-            {request.timeline.map((event, idx) => (
-              <li key={idx} className="flex items-start gap-3">
-                <span className="mt-1 h-2 w-2 rounded-full bg-emerald-500" />
+          <ul className="space-y-2">
+            {detail.timeline.map((t, idx) => (
+              <li key={idx} className="flex items-start text-sm">
+                <span className="mt-1 mr-3">
+                  <span className="inline-block w-2.5 h-2.5 rounded-full bg-green-500" />
+                </span>
                 <div>
-                  <p>
-                    <span className="font-medium">{event.label}</span> ·{" "}
-                    {event.time}
+                  <p className="text-gray-800">
+                    {t.status}{" "}
+                    <span className="text-gray-500">· {t.at}</span>
                   </p>
-                  <p className="text-xs text-slate-500">By: {event.by}</p>
+                  <p className="text-xs text-gray-500">By: {t.by}</p>
                 </div>
               </li>
             ))}
           </ul>
-        </section>
+        </div>
 
         {/* Notes */}
-        <section className="rounded-2xl border bg-white p-5 shadow-sm">
-          <h2 className="text-sm font-semibold text-slate-800 mb-3">Notes</h2>
-          {request.notes.length === 0 ? (
-            <p className="text-sm text-slate-500">No notes recorded.</p>
-          ) : (
-            <ul className="list-disc list-inside text-sm text-slate-700">
-              {request.notes.map((n, idx) => (
-                <li key={idx}>{n}</li>
-              ))}
-            </ul>
-          )}
-        </section>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
+          <h2 className="text-sm font-semibold text-gray-700 mb-3">
+            Notes
+          </h2>
+          <ul className="list-disc pl-5 space-y-1 text-sm text-gray-700">
+            {detail.notes.map((n, i) => (
+              <li key={i}>{n}</li>
+            ))}
+          </ul>
+        </div>
 
         {/* Confirm received */}
-        <section className="rounded-2xl border bg-white p-5 shadow-sm space-y-3">
-          <h2 className="text-sm font-semibold text-slate-800">
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-4">
+          <h2 className="text-sm font-semibold text-gray-700 mb-4">
             Confirm received
           </h2>
-          <div className="flex flex-col md:flex-row gap-3 items-start md:items-center">
-            <select
-              className="w-full md:w-60 rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-500"
-              defaultValue="Dispatched"
+          <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center">
+            <div className="md:w-1/3">
+              <select
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                value={confirmStatus}
+                onChange={(e) =>
+                  setConfirmStatus(e.target.value as Status)
+                }
+              >
+                <option value="dispatched">Dispatched</option>
+                <option value="received">Received</option>
+              </select>
+            </div>
+
+            <div className="flex-1">
+              <textarea
+                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 bg-gray-50 resize-none h-12 md:h-10 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                placeholder="Optional: e.g. 'Confirmed received in ICU'"
+                value={confirmNote}
+                onChange={(e) => setConfirmNote(e.target.value)}
+              />
+            </div>
+
+            <button
+              type="button"
+              className="md:w-40 h-10 px-5 rounded-full bg-blue-100 text-blue-700 text-sm font-medium hover:bg-blue-200 transition"
+              onClick={() => {
+                // call your POST /timeline API here
+              }}
             >
-              <option value="Dispatched">Dispatched</option>
-              <option value="Received">Received</option>
-            </select>
-            <textarea
-              className="flex-1 w-full rounded-xl border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-500"
-              rows={2}
-              placeholder="Optional: e.g. 'Confirmed received in ICU'"
-            />
-            <button className="rounded-full bg-slate-700 px-5 py-2 text-sm font-medium text-white hover:bg-slate-800">
               Confirm Received
             </button>
           </div>
-        </section>
-      </div>
-    </main>
+        </div>
+      </main>
+    </div>
   );
 }
